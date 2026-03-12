@@ -13,6 +13,9 @@ def recv_msg(client):
                 msg=msg[8:]
                 reqdata=json.loads(msg)
                 print(reqdata)
+                
+            elif msg.startswith("REQ|"):
+                print(msg[4:])
         except:
             break
         
@@ -41,12 +44,22 @@ while True:
     elif msg.startswith("SHOW|"):
         client.send(msg.encode())
         
-   # elif msg.startswith("REQ|"):
-   #     client.send(msg.encode())
+    elif msg.startswith("STAT|"):
+        client.send(msg.encode())
+        
+    elif msg.startswith("REQ|"):
+        client.send(msg.encode())
+        
+    elif msg.startswith("ACCEPT|"):
+        client.send(msg.encode())
+        
+    elif msg.startswith("REJECT|"):
+        client.send(msg.encode())
         
     else:
         client.send(("SEND|"+msg).encode())
 client.close()
 
     
+     
      
