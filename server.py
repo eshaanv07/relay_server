@@ -2,7 +2,7 @@ import socket
 import threading
 import json
 
-def master_func(conn,client_list,connection_list,status_list):
+def master_func(conn,client_list,connection_list,status_list,pending_list):
     
     uname=get_uname(conn,client_list,status_list)
     
@@ -44,19 +44,37 @@ def master_func(conn,client_list,connection_list,status_list):
         elif msg.startswith("SHOW|"):
             msg="SHOWANS|"+json.dumps(status_list)
             conn.sendall(msg.encode())
-            
-       # elif msg.startswith("REQ|"):
 
-        
-        elif msg.startswith("CONN|"):
-            otheruname=msg[5:]
-            
+        elif msg.startswith("STAT|"):
+            msg=msg[5:]
+            if msg=="AVAL" or msg=="DND":
+                status_list[uname]=msg
+                
+        elif msg.startswith("REQ|"):
+            otheruname=msg[4:]
             if otheruname in client_list and status_list[uname]=="AVAL" and status_list[otheruname]=="AVAL":
+                pending_list[uname]=otheruname
+                status_list[uname]="PENDING"
+                partner_socket=client_list[otheruname]
+                partner_socket.sendall(("REQ|Do you accept connection with "+uname).encode())
+                print(uname,"has pending connection request with",otheruname)
+                
+        elif msg.startswith("ACCEPT|"):
+            otheruname=msg[7:]
+            if otheruname in client_list and otheruname in pending_list and status_list[uname]=="AVAL" and status_list[otheruname]=="PENDING":
                 connection_list[uname]=otheruname
                 connection_list[otheruname]=uname
                 status_list[uname]="BUSY"
                 status_list[otheruname]="BUSY"
                 print(uname,"connected with",otheruname)
+                del pending_list[otheruname]
+                
+        elif msg.startswith("REJECT|"):
+            otheruname=msg[7:]
+            if otheruname in client_list and otheruname in pending_list and status_list[uname]=="AVAL" and status_list[otheruname]=="PENDING":
+                status_list[otheruname]="AVAL"
+                del pending_list[otheruname]
+            
             
         elif msg.startswith("SEND|"):
             
@@ -80,6 +98,7 @@ def get_uname(conn,client_list,status_list):
 client_list={}
 connection_list={}
 status_list={}
+pending_list={}
 
 server=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 server.bind(('0.0.0.0',5100))
@@ -90,7 +109,9 @@ while True:
     conn,addr=server.accept()
     print("connected",addr)
     
-    t1=threading.Thread(target=master_func,args=(conn,client_list,connection_list,status_list))
+    t1=threading.Thread(target=master_func,args=(conn,client_list,connection_list,status_list,pending_list))
     t1.start()
+
+    
 
     
