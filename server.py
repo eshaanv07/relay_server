@@ -103,14 +103,16 @@ pending_list={}
 server=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 server.bind(('0.0.0.0',5100))
 server.listen(5)
-print("server listening on port 5100")
+print("Server listening on port 5100")
 
 while True:
     conn,addr=server.accept()
-    print("connected",addr)
+    print("New client connected: ",addr)
     
     t1=threading.Thread(target=master_func,args=(conn,client_list,connection_list,status_list,pending_list))
     t1.start()
+
+    
 
     
 
